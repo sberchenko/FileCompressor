@@ -39,10 +39,12 @@ def main():
 
     # Zipping individually
     for file in files:
-        for extension in file_extensions:
-            if extension in file:
-                compress(file)
-                files_compressable.append(file)
+        # Assert file hasn't been zipped already
+        if open(file, 'rb').read(2) != b'7z':
+            for extension in file_extensions:
+                if extension in file:
+                    compress(file)
+                    files_compressable.append(file)
 
     # Zipping collectively
     compress_all(files_compressable, directory + '/testAll.7z')
