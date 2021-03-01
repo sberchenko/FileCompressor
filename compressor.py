@@ -1,8 +1,7 @@
 import os
-from zipfile import ZipFile, BadZipFile, LargeZipFile
+from zipfile import ZipFile, BadZipFile, LargeZipFile, ZIP_DEFLATED
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
-from functools import partial
 
 # Parameters for execution
 file_extensions = ['.sav', '.3dsav', '.f3sav']  # File extensions that should be compressed
@@ -65,7 +64,8 @@ class Window(QDialog):
         def compress_clicked():
 
             compress_button.setText("Compressing...")
-            self.compress_dir(file_label.text()[6:])
+            directory = file_label.text()[6:]
+            self.compress_dir(directory)
 
             # Write log
             failed_files = {}
@@ -76,7 +76,7 @@ class Window(QDialog):
                 else:
                     success_files[e] = self.log[e]
 
-            with open("log.txt", 'w') as f:
+            with open(f"{directory}/log.txt", 'w') as f:
                 f.write(f"Successfully wrote {len(success_files)} files.\n")
                 f.write(f"Failed to write {len(failed_files)} files.\n")
                 f.write(f"\nFailed files:\n\n")
@@ -89,9 +89,11 @@ class Window(QDialog):
             compress_button.setText("Compress")
             msg = QMessageBox()
             msg.setWindowTitle("Compression Completed")
-            msg.setText(f"Compression complete.\nFailed to write {len(failed_files)} files.\n" +
-                        f"Compression log can be found at {os.getcwd()}\\log.txt")
+            msg.setText(f"Compression complete.\nSuccessfully wrote {len(success_files)} files.\n" +
+                        f"Failed to write {len(failed_files)} files.\n" +
+                        f"Compression log can be found at {directory}/log.txt")
             msg.exec_()
+            self.log = {}
 
         compress_button.clicked.connect(compress_clicked)
 
@@ -119,7 +121,7 @@ class Window(QDialog):
         """
         target = file[:file.rfind('.')] + '.zip'
         try:
-            with ZipFile(target, 'w') as zip: zip.write(file)
+            with ZipFile(target, 'w', ZIP_DEFLATED) as zip: zip.write(file, file[file.rfind('/')+1:])
             if self.delete: os.remove(file)
             self.log[file] = 'success'
         except BadZipFile as e:
@@ -135,7 +137,7 @@ class Window(QDialog):
         :param directory: dir to be compressed
         """
         files = os.listdir(directory)
-        files = [os.path.join(directory, file) for file in files]
+        files = [directory + "/" + file for file in files]
 
         # Iterate through files
         for file in files:
