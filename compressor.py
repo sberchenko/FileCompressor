@@ -9,7 +9,7 @@ file_extensions = ['.sav', '.3dsav', '.f3sav']  # File extensions that should be
 
 class Window(QDialog):
     """
-    Qt Window
+    Qt Window to display GUI
     """
 
     def __init__(self):
@@ -38,6 +38,9 @@ class Window(QDialog):
         file_label.setStyleSheet(style_sheet)
 
         def checkbox_changed():
+            """
+            Sets the window's delete field to whether the delete checkbox is checked
+            """
             self.delete = delete_box.isChecked()
 
         delete_box = QCheckBox("Delete Files")
@@ -48,23 +51,39 @@ class Window(QDialog):
         right_layout.addStretch(1)
         right_layout.setSpacing(int(minor_spacing*2.2))
 
-        # Create file_buttons
-        def clicked():
+        # Create file input
+        def file_input_clicked():
+            """
+            Opens a dialog box to get the user's desired directory.
+            Sets the file_label's text to indicate the selected directory
+            """
             file_name = QFileDialog.getExistingDirectory(self, "Select Directory", "/")
             if file_name != '': file_label.setText(f"File: {file_name}")
 
         input_button = QPushButton('Select Directory')
         input_button.setStyleSheet(style_sheet)
         input_button.setFixedWidth(button_width)
-        input_button.clicked.connect(clicked)
+        input_button.clicked.connect(file_input_clicked)
 
         compress_button = QPushButton('Compress')
         compress_button.setStyleSheet(style_sheet)
 
         def compress_clicked():
+            """
+            Compresses all of the files in the currently selected directory.
+            If no directory is selected, indicates to the user that they must select a directory.
+            """
+            directory = file_label.text()[6:]
+
+            # Check a directory has been selected
+            if directory == "None":
+                msg = QMessageBox()
+                msg.setWindowTitle("Input Invalid")
+                msg.setText("Select a directory before compressing.")
+                msg.exec_()
+                return
 
             compress_button.setText("Compressing...")
-            directory = file_label.text()[6:]
             self.compress_dir(directory)
 
             # Write log
@@ -79,13 +98,16 @@ class Window(QDialog):
             with open(f"{directory}/log.txt", 'w') as f:
                 f.write(f"Successfully wrote {len(success_files)} files.\n")
                 f.write(f"Failed to write {len(failed_files)} files.\n")
+
                 f.write(f"\nFailed files:\n\n")
                 for k, v in failed_files.items():
                     f.write(f"File: {k}\nError cause: {v}\n")
+
                 f.write(f"\nSuccessful Files:\n\n")
                 for k, v in success_files.items():
                     f.write(f"File: {k}\n")
 
+            # Display resulting message box
             compress_button.setText("Compress")
             msg = QMessageBox()
             msg.setWindowTitle("Compression Completed")
@@ -116,7 +138,9 @@ class Window(QDialog):
 
     def compress(self, file):
         """
-        Compresses the inputted file into a .7z
+        Compresses the inputted file into a .zip
+        If self.delete is true, deletes the file after it is compressed
+        Writes the result ('success' or error type) to self.log after completion
         :param file: a string path to the file
         """
         target = file[:file.rfind('.')] + '.zip'
@@ -125,9 +149,9 @@ class Window(QDialog):
             if self.delete: os.remove(file)
             self.log[file] = 'success'
         except BadZipFile as e:
-            self.log[file] = e
+            self.log[file] = f"BadZipFile Error: {e}"
         except LargeZipFile as e:
-            self.log[file] = e
+            self.log[file] = f"LargeZipFile Error: {e}"
         except:
             self.log[file] = "unexpected_error"
 
