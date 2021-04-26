@@ -1,1 +1,1 @@
-pyinstaller --onefile --noconsole compressor.py
+pyinstaller --onefile --noconsole Compressor_GUI.py
