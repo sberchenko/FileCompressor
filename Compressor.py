@@ -21,6 +21,7 @@ class Compressor(QThread):
         self.file_count = 0  # Total number of files to process
 
     def run(self):
+        self.file_count = sum([len(files) for r, d, files in os.walk(self.directory)])
         self.compress_dir(self.directory)
         self.finished.emit(True)
 
@@ -46,7 +47,6 @@ class Compressor(QThread):
         # Get files & their count
         files = os.listdir(directory)
         files = [os.path.join(directory, file) for file in files]
-        self.file_count += len(files)
 
         # Iterate through files
         for file in files:
